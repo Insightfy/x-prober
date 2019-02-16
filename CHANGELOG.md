@@ -2,6 +2,25 @@
 
 All Notable changes to `X-Prober` will be documented in this file
 
+## 2.1.3 - 2019-02-14
+
+### Add
+
+- Add Google search keyword
+
+## 2.1.2 - 2019-02-11
+
+### Update
+
+- Update latest version to PHP 7.3.2
+
+## 2.1.1 - 2019-02-09
+
+### Add
+
+- Add Vultr PHP7.3 benchmarks
+- Update package assets
+
 ## 2.1.0 - 2019-01-29
 
 ### Add
