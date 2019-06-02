@@ -42,7 +42,7 @@ class ServerBenchmark
 
     public function display()
     {
-        $lang = I18nApi::_('💡 Higher is better. This result is only used as reference data for author testing. Note: the benchmark marks are not the only criterion for evaluating the quality of a host/server.');
+        $lang = '<span class="inn-emoji">💡</span> ' . I18nApi::_('Higher is better. This result is only used as reference data for author testing. Note: the benchmark marks are not the only criterion for evaluating the quality of a host/server.');
 
         return <<<HTML
 <p class="inn-mod__description">{$lang}</p>
@@ -54,63 +54,18 @@ HTML;
 
     private function getContent()
     {
-        $items = array(
-            array(
-                'label'   => 'Vultr/PHP7.3',
-                'url'     => 'https://www.vultr.com/?ref=7826363-4F',
-                'content' => 3305,
-            ),
-            array(
-                'label'   => 'Amazon/EC2/PHP7.2',
-                'url'     => 'https://aws.amazon.com/',
-                'content' => 3150,
-            ),
-            array(
-                'label'   => 'VPSSERVER/KVM/PHP7.2',
-                'url'     => 'https://www.vpsserver.com/?affcode=32d56f2dd1b6',
-                'content' => 3125,
-            ),
-            array(
-                'label'   => 'SpartanHost/KVM/PHP7.2',
-                'url'     => 'https://billing.spartanhost.net/aff.php?aff=801',
-                'content' => 3174,
-            ),
-            array(
-                'label'   => 'Aliyun/ECS/PHP7.2',
-                'url'     => 'https://promotion.aliyun.com/ntms/act/ambassador/sharetouser.html?userCode=0nry1oii&amp;utm_source=0nry1oii',
-                'content' => 3302,
-            ),
-            array(
-                'label'   => 'Vultr/PHP7.2',
-                'url'     => 'https://www.vultr.com/?ref=7256513',
-                'content' => 3182,
-            ),
-            array(
-                'label'   => 'RamNode/PHP7.2',
-                'url'     => 'https://clientarea.ramnode.com/aff.php?aff=4143',
-                'content' => 3131,
-            ),
-            array(
-                'label'   => 'Linode/PHP7.2',
-                'url'     => 'https://www.linode.com/?r=2edf930598b4165760c1da9e77b995bac72f8ad1',
-                'content' => 3091,
-            ),
-            array(
-                'label'   => 'Tencent/PHP7.2',
-                'url'     => 'https://cloud.tencent.com/',
-                'content' => 3055,
-            ),
-            array(
-                'label'   => 'BandwagonHOST/KVM/PHP7.2',
-                'url'     => 'https://bandwagonhost.com/aff.php?aff=34116',
-                'content' => 2181,
-            ),
-        );
+        $items = \unserialize(ServerBenchmarkMarks::$marks);
 
         // order
         $sort = array();
 
-        foreach ($items as $item) {
+        foreach ($items as &$item) {
+            $item['groupId'] = $this->ID;
+
+            if (isset($item['detail']) && \is_array($item['detail'])) {
+                $item['content'] = \array_sum($item['detail']);
+            }
+
             $sort[] = (int) $item['content'];
         }
 
@@ -125,21 +80,56 @@ HTML;
         \array_unshift(
             $items,
             array(
+                'groupId' => $this->ID,
                 'label'   => I18nApi::_('My server'),
-                'content' => '<div id="inn-benchmark__container"></div>',
+                'content' => <<<HTML
+<div id="inn-benchmark__container"></div>
+HTML
             )
         );
 
         $items = \array_map(function (array $item) {
+            // set aff url
             if (isset($item['url'])) {
+                $lang = I18nApi::_('Go to service provider homepage');
                 $item['label'] = <<<HTML
-<a href="{$item['url']}" target="_blank">{$item['label']}</a>
+<a href="{$item['url']}" title="{$lang}" target="_blank">{$item['label']}</a>
 HTML;
             }
 
-            if (\is_numeric($item['content'])) {
+            // check prober url
+            $proberUrl = isset($item['proberUrl']) && $item['proberUrl'] ? $item['proberUrl'] : '';
+
+            if (isset($item['content']) && \is_numeric($item['content'])) {
                 $item['content'] = \number_format((float) $item['content']);
+
+                // set date
+                if (isset($item['date'])) {
+                    $item['content'] .= <<<HTML
+&nbsp;<small class="inn-group__content__small">({$item['date']})</small>
+HTML;
+                }
+
+                // set x prober url
+                if ($proberUrl) {
+                    $lang = I18nApi::_('Go to prober page');
+                    $item['content'] .= <<<HTML
+&nbsp;<a href="{$item['proberUrl']}" title="{$lang}" class="inn-emoji" target="_blank">🔗</a>
+HTML;
+                }
+
+                // set bin url
+                if (isset($item['binUrl']) && $item['binUrl']) {
+                    $lang = I18nApi::_('Download file for network speed testing');
+                    $item['content'] .= <<<HTML
+&nbsp;<a href="{$item['binUrl']}" title="{$lang}" class="inn-emoji" target="_blank">⬇️</a>
+HTML;
+                }
             }
+
+            $item['title'] = isset($item['detail']) ? \implode(', ', \array_map(function ($id, $v) {
+                return "{$id}: {$v}";
+            }, \array_keys($item['detail']), $item['detail'])) : '';
 
             return $item;
         }, $items);

@@ -2,6 +2,121 @@
 
 All Notable changes to `X-Prober` will be documented in this file
 
+## 2.4.1 - 2019-05-24
+
+### Optimize
+
+- Optimize `position:fixed` performance
+
+## 2.4.0 - 2019-05-14
+
+### Add
+
+- Add Ping Server feature
+
+### Update
+
+- Update PHP version to 7.3.5
+- Update NGINX version to 1.16.0
+- Update SQLite version to 3.28.0
+
+## 2.3.2 - 2019-04-07
+
+### Update
+
+- Update PHP version to 7.3.4
+
+## 2.3.1 - 2019-03-16
+
+### Optimize
+
+- Change fork me image to HTML text
+- Remove Microsoft YaHei/YaHei UI fonts
+- Adjust vscode settings profile
+- Adjust php-cs-fixer config
+
+## 2.3.0 - 2019-03-15
+
+### Add
+
+- Add multi update sources
+- Add NGINX latest version tip
+
+## 2.2.2 - 2019-03-14
+
+### Fix
+
+- Fix error on Windows
+
+## 2.2.1 - 2019-03-13
+
+### Optimize
+
+- Optimize class name HTML
+
+## 2.2.0 - 2019-03-09
+
+### Add
+
+- Add debug mode for compiler
+- Add bin download for network speed testing (server benchmark)
+- Add prober page (server benchmark)
+- Add sleep operating when doing server benchmark
+- Add latest PHP version 7.3.3
+- Add 1Gbits server benchmark
+
+### Optimize
+
+- Change `seconds` to `s`
+
+## 2.1.8 - 2019-03-05
+
+### Add
+
+- Disable cache for fetch request
+
+## 2.1.7 - 2019-03-02
+
+### Optimize
+
+- Optimize clean opcache operation after update
+
+## 2.1.6 - 2019-03-01
+
+### Add
+
+- Add server benchmark date
+- Add APP config file
+- Add progress high light style
+- add SQLite3 ext detection
+- add SimpleXML ext detection
+
+### Optimize
+
+- Optimize server benchmark style
+- Optimize module title style for firefox
+
+## 2.1.5 - 2019-02-20
+
+### Add
+
+- Add detail information benchmark
+- Add Monovm benchmark result
+
+### Fix
+
+- Fix zero value text description error in progress
+
+## 2.1.4 - 2019-02-19
+
+### Add
+
+- Add memory real usage
+
+### Optimize
+
+- Optimize memory cache/buffers usage information
+
 ## 2.1.3 - 2019-02-14
 
 ### Add

@@ -6,6 +6,11 @@ use InnStudio\Prober\Components\I18n\I18nApi;
 
 class HelperApi
 {
+    public static function getClassNames(array $classNames)
+    {
+        return \implode(' ', \array_keys(\array_filter($classNames)));
+    }
+
     public static function getGroupItemLists(array $items, $sorted = false)
     {
         if ( ! \array_filter($items)) {
@@ -18,6 +23,11 @@ class HelperApi
 
         $items = \implode('', \array_map(function ($item) {
             $item = \trim($item);
+
+            if ( ! $item) {
+                return '';
+            }
+
             $kw = \urlencode($item);
 
             return <<<HTML
@@ -40,13 +50,16 @@ HTML;
         ), $args);
 
         if ( ! $args['total']) {
-            return I18nApi::_('Unavailable');
+            $percent    = 0;
+            $totalHuman = 0;
+            $usageHuman = 0;
+            $overview   = '0 / 0';
+        } else {
+            $percent    = \round($args['usage'] / $args['total'], 2) * 100;
+            $totalHuman = self::formatBytes($args['total']);
+            $usageHuman = self::formatBytes($args['usage']);
+            $overview   = $args['overview'] ? $args['overview'] : "{$usageHuman} / {$totalHuman}";
         }
-
-        $percent    = \round($args['usage'] / $args['total'], 2) * 100;
-        $totalHuman = self::formatBytes($args['total']);
-        $usageHuman = self::formatBytes($args['usage']);
-        $overview   = $args['overview'] ? $args['overview'] : "{$usageHuman} / {$totalHuman}";
 
         return <<<HTML
 <div class="inn-progress__container">
@@ -63,16 +76,18 @@ HTML;
 
     public static function setFileCacheHeader()
     {
+        // 1 year expired
         $seconds = 3600 * 24 * 30 * 12;
         $ts      = \gmdate('D, d M Y H:i:s', (int) $_SERVER['REQUEST_TIME'] + $seconds) . ' GMT';
-        \header("Expires: $ts");
+        \header("Expires: {$ts}");
         \header('Pragma: cache');
-        \header("Cache-Control: max-age={$seconds}");
+        \header("Cache-Control: public, max-age={$seconds}");
     }
 
     public static function getGroup(array $item)
     {
         $item = \array_merge(array(
+            'groupId' => '',
             'id'      => '',
             'label'   => '',
             'title'   => '',
@@ -94,26 +109,54 @@ HTML
             $col = "inn-g_lg-{$col}";
         }
 
-        $idClassNameGroup                 = $item['id'] ? "inn-{$item['id']}-group" : '';
-        $idClassNameGroupContainer        = $item['id'] ? "inn-{$item['id']}-group__container" : '';
-        $idClassNameGroupLabel            = $item['id'] ? "inn-{$item['id']}-group__label" : '';
-        $idClassNameGroupContent          = $item['id'] ? "inn-{$item['id']}-group__content" : '';
+        $idClassNameGroup          = $item['id'] ? "inn-{$item['id']}-group" : '';
+        $idClassNameGroupContainer = $item['id'] ? "inn-{$item['id']}-group__container" : '';
+        $idClassNameGroupLabel     = $item['id'] ? "inn-{$item['id']}-group__label" : '';
+        $idClassNameGroupContent   = $item['id'] ? "inn-{$item['id']}-group__content" : '';
+        $groupClassNameLabel       = $item['groupId'] ? "inn-group__label_{$item['groupId']}" : '';
+        $groupContainerClassNames  = self::getClassNames(array(
+            'inn-group__container'     => true,
+            $col                       => (bool) $col,
+            $idClassNameGroupContainer => (bool) $idClassNameGroupContainer,
+        ));
+        $groupClassNames = self::getClassNames(array(
+            'inn-group'       => true,
+            $idClassNameGroup => (bool) $idClassNameGroup,
+        ));
+        $groupLabelClassNames = self::getClassNames(array(
+            'inn-group__label'     => true,
+            $groupClassNameLabel   => (bool) $groupClassNameLabel,
+            $idClassNameGroupLabel => (bool) $idClassNameGroupLabel,
+            $hasTitleClassName     => (bool) $hasTitleClassName,
+        ));
+        $groupContentClassNames = self::getClassNames(array(
+            'inn-group__content'     => true,
+            $idClassNameGroupContent => (bool) $idClassNameGroupContent,
+            $hasTitleClassName       => (bool) $hasTitleClassName,
+        ));
 
         return <<<HTML
-<div class="inn-group__container {$col} {$idClassNameGroupContainer}">
-    <div class="inn-group {$idClassNameGroup}">
-        <div class="inn-group__label {$idClassNameGroupLabel} {$hasTitleClassName}" {$title}>{$item['label']}</div>
-        <div class="inn-group__content {$idClassNameGroupContent} {$hasTitleClassName}" {$title}>{$item['content']}</div>
+<div class="{$groupContainerClassNames}">
+    <div class="{$groupClassNames}">
+        <div class="{$groupLabelClassNames}" {$title}>{$item['label']}</div>
+        <div class="{$groupContentClassNames}" {$title}>{$item['content']}</div>
     </div>
 </div>
 HTML;
     }
 
-    public static function dieJson($data)
+    public static function dieJson(array $data)
     {
         \header('Content-Type: application/json');
+        \header('Expires: 0');
+        \header('Last-Modified: ' . \gmdate('D, d M Y H:i:s') . ' GMT');
+        \header('Cache-Control: no-store, no-cache, must-revalidate');
+        \header('Pragma: no-cache');
 
-        die(\json_encode($data));
+        die(\json_encode(\array_merge(array(
+            'code' => 0,
+            'data' => null,
+        ), $data)));
     }
 
     public static function isAction($action)
@@ -132,6 +175,8 @@ HTML;
 
             $cpus = array();
 
+            $total = 0;
+
             foreach ($server as $cpu) {
                 $total += (int) $cpu->loadpercentage;
             }
@@ -141,6 +186,7 @@ HTML;
             $cpus['user'] = $total;
         // exec
         } else {
+            $p = array();
             \exec('wmic cpu get LoadPercentage', $p);
 
             if (isset($p[1])) {
@@ -196,7 +242,7 @@ HTML;
         static $space = null;
 
         if (null === $space) {
-            $space = \disk_total_space(__DIR__);
+            $space = (float) \disk_total_space(__DIR__);
         }
 
         if (true === $human) {
@@ -211,7 +257,7 @@ HTML;
         static $space = null;
 
         if (null === $space) {
-            $space = \disk_free_space(__DIR__);
+            $space = (float) \disk_free_space(__DIR__);
         }
 
         if (true === $human) {
@@ -250,7 +296,7 @@ HTML;
     {
         $filePath = '/proc/uptime';
 
-        if ( ! @($filePath)) {
+        if ( ! @\is_file($filePath)) {
             return I18nApi::_('Unavailable');
         }
 
@@ -478,32 +524,42 @@ HTML;
                 }
 
                 $line            = \explode(':', $line);
-                $lines[$line[0]] = (int) $line[1] * 1024;
+                $lines[$line[0]] = (float) $line[1] * 1024;
             }
 
             $memInfo = $lines;
         }
 
+        if ( ! isset($memInfo['MemTotal'])) {
+            return 0;
+        }
+
         switch ($key) {
-        case 'MemUsage':
+        case 'MemRealUsage':
             if (isset($memInfo['MemAvailable'])) {
-                $memAvailable = $memInfo['MemAvailable'];
-            } elseif (isset($memInfo['MemFree'])) {
-                $memAvailable = $memInfo['MemFree'];
-            } else {
-                $memAvailable = 0;
+                return $memInfo['MemTotal'] - $memInfo['MemAvailable'];
             }
 
-            return $memInfo['MemTotal'] - $memAvailable;
+            if (isset($memInfo['MemFree'])) {
+                if (isset($memInfo['Buffers'], $memInfo['Cached'])) {
+                    return $memInfo['MemTotal'] - $memInfo['MemFree'] - $memInfo['Buffers'] - $memInfo['Cached'];
+                }
+
+                return $memInfo['MemTotal'] - $memInfo['Buffers'];
+            }
+
+            return 0;
+        case 'MemUsage':
+            return isset($memInfo['MemFree']) ? $memInfo['MemTotal'] - $memInfo['MemFree'] : 0;
         case 'SwapUsage':
-            if ( ! isset($memInfo['SwapTotal']) || ! isset($memInfo['SwapFree']) || ! isset($memInfo['SwapCached'])) {
+            if ( ! isset($memInfo['SwapTotal']) || ! isset($memInfo['SwapFree'])) {
                 return 0;
             }
 
             return $memInfo['SwapTotal'] - $memInfo['SwapFree'];
         }
 
-        return isset($memInfo[$key]) ? (int) $memInfo[$key] : 0;
+        return isset($memInfo[$key]) ? $memInfo[$key] : 0;
     }
 
     public static function formatBytes($bytes, $precision = 2)
